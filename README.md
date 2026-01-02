@@ -22,13 +22,17 @@ Parallax AI is a full-stack application built with **FastAPI**, **Next.js**, and
 ### New Developer Setup
 
 ```bash
-# One-command setup
-pip install -r requirements-dev.txt
-inv dev.setup
+# Run the setup script
+./setup_dev.sh
+
+# Activate virtual environment
+source venv/bin/activate
 
 # Edit .env file to add your API keys
 # - ANTHROPIC_API_KEY=sk-ant-api03-...
-# - JWT_SECRET (generate with: inv dev.secrets)
+
+# Generate secrets
+inv dev.secrets --update-env
 
 # Verify everything works
 inv dev.check
@@ -40,6 +44,9 @@ inv docker.up
 ### Daily Development
 
 ```bash
+# Activate virtual environment (if not already active)
+source venv/bin/activate
+
 # Start all services
 inv docker.up
 

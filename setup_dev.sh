@@ -26,10 +26,9 @@ fi
 # Load environment variables
 export $(grep -v '^#' .env | xargs)
 
-# 2. Backend Setup (Python)
+# 2. Python Virtual Environment (Project Root)
 echo "------------------------------------------------"
-echo "🐍 Setting up Backend (Python)..."
-cd backend
+echo "🐍 Setting up Python Virtual Environment..."
 
 # Check if python3 is available
 if ! command -v python3 &> /dev/null; then
@@ -38,30 +37,27 @@ if ! command -v python3 &> /dev/null; then
 fi
 
 # Create Virtual Environment if it doesn't exist
-if [ ! -d ".venv" ]; then
-    echo "📦 Creating Python virtual environment (.venv)..."
-    python3 -m venv .venv
+if [ ! -d "venv" ]; then
+    echo "📦 Creating Python virtual environment (venv)..."
+    python3 -m venv venv
 else
     echo "ℹ️  Virtual environment already exists."
 fi
 
 # Activate and Install Dependencies
 echo "⬇️  Installing Python dependencies..."
-source .venv/bin/activate
+source venv/bin/activate
 pip install --upgrade pip
-pip install -r requirements.txt
-echo "✅ Backend dependencies installed."
-cd ..
+
+# Install backend dependencies
+echo "Installing backend dependencies..."
+pip install -r backend/requirements.txt
 
 # Install development dependencies (invoke, etc.)
-echo "------------------------------------------------"
-echo "🛠️  Installing Development Tools..."
-echo "⬇️  Installing invoke and development dependencies..."
-# Use backend venv for invoke since it's project-wide
-backend/.venv/bin/pip install -r requirements-dev.txt
-echo "✅ Development dependencies installed."
-echo "ℹ️  You can now use: backend/.venv/bin/inv [command]"
-echo "   Or activate the venv: source backend/.venv/bin/activate && inv [command]"
+echo "Installing development tools (invoke, etc.)..."
+pip install -r requirements-dev.txt
+
+echo "✅ Python dependencies installed."
 
 # 3. Frontend Setup (Node.js)
 echo "------------------------------------------------"
@@ -108,19 +104,16 @@ echo "🎉 Setup Complete!"
 echo ""
 echo "Next steps:"
 echo "  1. Edit .env file and add your ANTHROPIC_API_KEY"
-echo "  2. Generate secrets: backend/.venv/bin/inv dev.secrets --update-env"
-echo "  3. Verify setup: backend/.venv/bin/inv dev.check"
+echo "  2. Activate venv: source venv/bin/activate"
+echo "  3. Generate secrets: inv dev.secrets --update-env"
+echo "  4. Verify setup: inv dev.check"
 echo ""
-echo "Using invoke commands (recommended):"
-echo "  List all commands:  backend/.venv/bin/inv --list"
-echo "  Start services:     backend/.venv/bin/inv docker.up"
-echo "  Check database:     backend/.venv/bin/inv db.status"
-echo "  View logs:          backend/.venv/bin/inv docker.logs"
-echo ""
-echo "Or activate the virtual environment first:"
-echo "  source backend/.venv/bin/activate"
-echo "  inv --list"
-echo "  inv docker.up"
+echo "Using invoke commands (with venv activated):"
+echo "  source venv/bin/activate"
+echo "  inv --list           # List all commands"
+echo "  inv docker.up        # Start services"
+echo "  inv db.status        # Check database"
+echo "  inv docker.logs      # View logs"
 echo ""
 echo "Traditional Docker commands still work:"
 if docker compose version &> /dev/null; then
