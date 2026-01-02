@@ -168,7 +168,7 @@ def exec_shell(c, service, user=None):
         inv docker.exec-shell --service=backend
         inv docker.exec-shell --service=postgres --user=postgres
     """
-    container_name = f"eager-pare-{service}-1"
+    container_name = f"parallax-ai-{service}-1"
     user_flag = f"-u {user}" if user else ""
     cmd = f"docker exec -it {user_flag} {container_name} /bin/sh"
 

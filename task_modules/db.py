@@ -11,7 +11,7 @@ def shell(c):
     Examples:
         inv db.shell
     """
-    container = "eager-pare-postgres-1"
+    container = "parallax-ai-postgres-1"
     cmd = f"docker exec -it {container} psql -U parallax -d parallax_ai"
 
     print(f"→ Running: docker exec -it {container} psql -U parallax -d parallax_ai")
@@ -72,7 +72,7 @@ def backup(c, filename=None):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"backup_{timestamp}.sql"
 
-    container = "eager-pare-postgres-1"
+    container = "parallax-ai-postgres-1"
     cmd = f"docker exec {container} pg_dump -U parallax parallax_ai > {filename}"
 
     print(f"→ Running: docker exec {container} pg_dump -U parallax parallax_ai > {filename}")
@@ -97,7 +97,7 @@ def restore(c, filename, confirm=True):
             print("Aborted.")
             return
 
-    container = "eager-pare-postgres-1"
+    container = "parallax-ai-postgres-1"
 
     # First, reset the database
     print("→ Resetting database...")
@@ -164,7 +164,7 @@ def status(c):
     Examples:
         inv db.status
     """
-    container = "eager-pare-postgres-1"
+    container = "parallax-ai-postgres-1"
 
     print("→ Checking container status...")
     result = c.run(f"docker ps | grep {container}", warn=True, hide=True)

@@ -1,4 +1,4 @@
-version: '3.8'
+name: parallax-ai
 
 services:
   postgres:

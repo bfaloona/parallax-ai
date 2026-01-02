@@ -358,7 +358,7 @@ Currently a stub. Will be implemented in Phase 2.
 inv db.status
 
 # Example output:
-# ✓ Container 'eager-pare-postgres-1' is running
+# ✓ Container 'parallax-ai-postgres-1' is running
 # ✓ Database 'parallax_ai' is accessible
 #   Tables: 5
 ```
@@ -641,7 +641,7 @@ inv docker.up
 inv db.status
 
 # Wait for database to be ready (may take 5-10 seconds)
-docker logs eager-pare-postgres-1
+docker logs parallax-ai-postgres-1
 
 # Reset database if still failing
 inv db.reset
@@ -705,13 +705,13 @@ inv db.restore --filename=dev_backup.sql
 docker network ls
 
 # Inspect network
-docker network inspect eager-pare_default
+docker network inspect parallax-ai_default
 
 # Check container connectivity
-docker exec eager-pare-backend-1 ping postgres
+docker exec parallax-ai-backend-1 ping postgres
 
 # Check DNS resolution
-docker exec eager-pare-backend-1 nslookup postgres
+docker exec parallax-ai-backend-1 nslookup postgres
 ```
 
 ---
@@ -723,13 +723,13 @@ docker exec eager-pare-backend-1 nslookup postgres
 docker volume ls
 
 # Inspect postgres volume
-docker volume inspect eager-pare_postgres_data
+docker volume inspect parallax-ai_postgres_data
 
 # Manually backup volume
-docker run --rm -v eager-pare_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/postgres_backup.tar.gz /data
+docker run --rm -v parallax-ai_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/postgres_backup.tar.gz /data
 
 # Manually restore volume
-docker run --rm -v eager-pare_postgres_data:/data -v $(pwd):/backup alpine tar xzf /backup/postgres_backup.tar.gz -C /
+docker run --rm -v parallax-ai_postgres_data:/data -v $(pwd):/backup alpine tar xzf /backup/postgres_backup.tar.gz -C /
 ```
 
 ---

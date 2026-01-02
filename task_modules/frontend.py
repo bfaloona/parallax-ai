@@ -13,7 +13,7 @@ def shell(c):
     print("→ frontend.shell - Phase 1+ (Minimal Round Trip)")
     print("⚠️  Not yet implemented - requires frontend container running")
     print("")
-    container = "eager-pare-frontend-1"
+    container = "parallax-ai-frontend-1"
     cmd = f"docker exec -it {container} /bin/sh"
 
     print("Expected command:")

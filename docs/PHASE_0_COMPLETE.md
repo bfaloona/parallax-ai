@@ -50,12 +50,12 @@ Phase 0 has been successfully completed. All infrastructure components are runni
 - [x] PostgreSQL container running and accessible
   ```bash
   docker ps | grep postgres
-  # eager-pare-postgres-1 running and healthy
+  # parallax-ai-postgres-1 running and healthy
   ```
 
 - [x] Database connection verified
   ```bash
-  docker exec eager-pare-postgres-1 psql -U parallax -d parallax_ai -c '\l'
+  docker exec parallax-ai-postgres-1 psql -U parallax -d parallax_ai -c '\l'
   # Shows parallax_ai database owned by parallax user
   ```
 
@@ -171,9 +171,9 @@ docker-compose up -d postgres
 
 ### View Logs
 ```bash
-docker logs eager-pare-postgres-1
-docker logs eager-pare-backend-1      # When Phase 1 is implemented
-docker logs eager-pare-frontend-1     # When Phase 1 is implemented
+docker logs parallax-ai-postgres-1
+docker logs parallax-ai-backend-1      # When Phase 1 is implemented
+docker logs parallax-ai-frontend-1     # When Phase 1 is implemented
 ```
 
 ---
@@ -182,7 +182,7 @@ docker logs eager-pare-frontend-1     # When Phase 1 is implemented
 
 ### Connect to PostgreSQL
 ```bash
-docker exec -it eager-pare-postgres-1 psql -U parallax -d parallax_ai
+docker exec -it parallax-ai-postgres-1 psql -U parallax -d parallax_ai
 ```
 
 ### Useful PostgreSQL Commands
