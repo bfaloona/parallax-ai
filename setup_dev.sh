@@ -53,6 +53,16 @@ pip install -r requirements.txt
 echo "✅ Backend dependencies installed."
 cd ..
 
+# Install development dependencies (invoke, etc.)
+echo "------------------------------------------------"
+echo "🛠️  Installing Development Tools..."
+echo "⬇️  Installing invoke and development dependencies..."
+# Use backend venv for invoke since it's project-wide
+backend/.venv/bin/pip install -r requirements-dev.txt
+echo "✅ Development dependencies installed."
+echo "ℹ️  You can now use: backend/.venv/bin/inv [command]"
+echo "   Or activate the venv: source backend/.venv/bin/activate && inv [command]"
+
 # 3. Frontend Setup (Node.js)
 echo "------------------------------------------------"
 echo "⚛️  Setting up Frontend (Next.js)..."
@@ -85,7 +95,7 @@ echo "Waiting for PostgreSQL to be ready..."
 sleep 5
 
 # Check if postgres is ready
-until docker exec $(docker ps -qf "name=postgres") pg_isready -U langflow &> /dev/null; do
+until docker exec $(docker ps -qf "name=postgres") pg_isready -U parallax &> /dev/null; do
     echo "Waiting for database to be ready..."
     sleep 2
 done
@@ -96,14 +106,28 @@ echo "✅ Database initialized."
 echo "------------------------------------------------"
 echo "🎉 Setup Complete!"
 echo ""
-echo "To start the application with Docker (Recommended):"
+echo "Next steps:"
+echo "  1. Edit .env file and add your ANTHROPIC_API_KEY"
+echo "  2. Generate secrets: backend/.venv/bin/inv dev.secrets --update-env"
+echo "  3. Verify setup: backend/.venv/bin/inv dev.check"
+echo ""
+echo "Using invoke commands (recommended):"
+echo "  List all commands:  backend/.venv/bin/inv --list"
+echo "  Start services:     backend/.venv/bin/inv docker.up"
+echo "  Check database:     backend/.venv/bin/inv db.status"
+echo "  View logs:          backend/.venv/bin/inv docker.logs"
+echo ""
+echo "Or activate the virtual environment first:"
+echo "  source backend/.venv/bin/activate"
+echo "  inv --list"
+echo "  inv docker.up"
+echo ""
+echo "Traditional Docker commands still work:"
 if docker compose version &> /dev/null; then
     echo "  docker compose up --build"
 else
     echo "  docker-compose up --build"
 fi
 echo ""
-echo "To run services individually (for debugging):"
-echo "  Backend:  cd backend && source .venv/bin/activate && uvicorn app.main:app --reload"
-echo "  Frontend: cd frontend && npm run dev"
+echo "See docs/DEVELOPER_COMMANDS.md for complete command reference."
 echo ""
