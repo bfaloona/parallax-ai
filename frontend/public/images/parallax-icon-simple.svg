@@ -1,0 +1,25 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ultra-simple favicon version - just the core geometric pattern -->
+
+  <!-- Hexagon -->
+  <path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z"
+        stroke="#2C5F6F"
+        stroke-width="1.5"
+        fill="none"/>
+
+  <!-- Three interlocking blocks simplified to minimal shapes -->
+  <path d="M11 13 L11 17 L14 19 L14 15 Z" fill="#3A7B8F"/>
+  <path d="M14 15 L17 13 L17 17 L14 19 Z" fill="#5A9BAF"/>
+
+  <path d="M18 13 L18 17 L21 19 L21 15 Z" fill="#D4B896"/>
+  <path d="M15 17 L18 15 L18 19 L15 21 Z" fill="#C4A886"/>
+
+  <path d="M14 19 L17 17 L17 21 L14 23 Z" fill="#3A7B8F"/>
+
+  <!-- Single arrow indicator -->
+  <path d="M22 14 L25 16 L22 18"
+        stroke="#C4A886"
+        stroke-width="1"
+        fill="none"
+        stroke-linecap="round"/>
+</svg>
