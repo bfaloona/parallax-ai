@@ -7,12 +7,16 @@ services:
       - LANGFLOW_AUTO_LOGIN=false
     depends_on:
       - postgres
+    networks:
+      - parallax
 
   streamlit:
     build: ./streamlit
     restart: unless-stopped
     environment:
       - LANGFLOW_API_URL=http://langflow:7860
+    networks:
+      - parallax
 
   postgres:
     image: postgres:16-alpine
@@ -23,6 +27,11 @@ services:
       - POSTGRES_DB=langflow
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - parallax
 
 volumes:
   postgres_data:
+
+networks:
+  parallax:
