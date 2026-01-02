@@ -1,0 +1,28 @@
+services:
+  langflow:
+    image: langflowai/langflow:latest
+    restart: unless-stopped
+    environment:
+      - LANGFLOW_DATABASE_URL=postgresql://langflow:${POSTGRES_PASSWORD}@postgres:5432/langflow
+      - LANGFLOW_AUTO_LOGIN=false
+    depends_on:
+      - postgres
+
+  streamlit:
+    build: ./streamlit
+    restart: unless-stopped
+    environment:
+      - LANGFLOW_API_URL=http://langflow:7860
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=langflow
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=langflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
