@@ -1,4 +1,35 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # This URL is used by the browser, so it must be accessible from the host
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    networks:
+      - parallax
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://langflow:${POSTGRES_PASSWORD}@postgres:5432/langflow
+      - LANGFLOW_API_URL=http://langflow:7860
+    networks:
+      - parallax
+    depends_on:
+      - postgres
+      - langflow
+
   langflow:
     image: langflowai/langflow:latest
     restart: unless-stopped
@@ -9,16 +40,6 @@ services:
       - LANGFLOW_AUTO_LOGIN=false
     depends_on:
       - postgres
-    networks:
-      - parallax
-
-  streamlit:
-    build: ./streamlit
-    restart: unless-stopped
-    ports:
-      - "8501:8501"
-    environment:
-      - LANGFLOW_API_URL=http://langflow:7860
     networks:
       - parallax
 
