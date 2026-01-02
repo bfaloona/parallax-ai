@@ -3,6 +3,17 @@ set -e
 
 echo "🚀 Starting Parallax AI Development Setup..."
 
+# Check if Docker is available
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker could not be found. Please install Docker."
+    exit 1
+fi
+
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    echo "❌ Docker Compose could not be found. Please install Docker Compose."
+    exit 1
+fi
+
 # 1. Environment Variables
 if [ ! -f .env ]; then
     echo "📝 Creating .env file from .env.example..."
@@ -11,6 +22,9 @@ if [ ! -f .env ]; then
 else
     echo "ℹ️  .env file already exists. Skipping creation."
 fi
+
+# Load environment variables
+export $(grep -v '^#' .env | xargs)
 
 # 2. Backend Setup (Python)
 echo "------------------------------------------------"
@@ -55,12 +69,39 @@ npm install
 echo "✅ Frontend dependencies installed."
 cd ..
 
-# 4. Final Instructions
+# 4. Initialize Database
+echo "------------------------------------------------"
+echo "🗄️  Initializing Database..."
+echo "Starting PostgreSQL container..."
+
+# Start only postgres to initialize the database
+if docker compose version &> /dev/null; then
+    docker compose up -d postgres
+else
+    docker-compose up -d postgres
+fi
+
+echo "Waiting for PostgreSQL to be ready..."
+sleep 5
+
+# Check if postgres is ready
+until docker exec $(docker ps -qf "name=postgres") pg_isready -U langflow &> /dev/null; do
+    echo "Waiting for database to be ready..."
+    sleep 2
+done
+
+echo "✅ Database initialized."
+
+# 5. Final Instructions
 echo "------------------------------------------------"
 echo "🎉 Setup Complete!"
 echo ""
 echo "To start the application with Docker (Recommended):"
-echo "  docker-compose up --build"
+if docker compose version &> /dev/null; then
+    echo "  docker compose up --build"
+else
+    echo "  docker-compose up --build"
+fi
 echo ""
 echo "To run services individually (for debugging):"
 echo "  Backend:  cd backend && source .venv/bin/activate && uvicorn app.main:app --reload"
