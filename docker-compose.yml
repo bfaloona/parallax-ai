@@ -2,6 +2,8 @@ services:
   langflow:
     image: langflowai/langflow:latest
     restart: unless-stopped
+    ports:
+      - "7860:7860"
     environment:
       - LANGFLOW_DATABASE_URL=postgresql://langflow:${POSTGRES_PASSWORD}@postgres:5432/langflow
       - LANGFLOW_AUTO_LOGIN=false
@@ -13,6 +15,8 @@ services:
   streamlit:
     build: ./streamlit
     restart: unless-stopped
+    ports:
+      - "8501:8501"
     environment:
       - LANGFLOW_API_URL=http://langflow:7860
     networks:
