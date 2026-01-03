@@ -452,6 +452,56 @@ curl -X POST http://localhost:8000/api/chat \
 - [ ] Backend streams response from Claude API
 - [ ] Frontend displays streamed text incrementally
 - [ ] No CORS errors in browser console
+- [ ] **All unit tests pass:** `inv test.unit`
+- [ ] **Test coverage ≥ 80%**
+- [ ] Tests exist for health and chat endpoints
+- [ ] Tests use proper naming convention: `test_<functionality>_<condition>_<expected_result>`
+
+### Phase 1 Testing Requirements:
+
+Create the following test structure:
+
+```
+tests/
+├── conftest.py          # Shared fixtures
+├── unit/
+│   ├── __init__.py
+│   ├── test_api_health.py    # Health endpoint tests
+│   ├── test_api_chat.py      # Chat endpoint tests
+│   └── test_app_config.py    # App configuration tests
+├── integration/
+│   └── __init__.py
+└── acceptance/
+    └── __init__.py
+```
+
+**Required test files:**
+
+1. **tests/conftest.py** - Shared fixtures for all tests
+2. **tests/unit/test_api_health.py** - Test `/health` endpoint
+3. **tests/unit/test_api_chat.py** - Test `/api/chat` with mocked Anthropic API
+4. **tests/unit/test_app_config.py** - Test CORS, routes, app configuration
+
+**Test naming examples:**
+```python
+def test_health_endpoint_valid_request_returns_200()
+def test_chat_endpoint_valid_message_calls_anthropic_with_correct_model()
+def test_app_routes_health_endpoint_exists()
+```
+
+**Run tests:**
+```bash
+# Install test dependencies
+pip install -r requirements-dev.txt
+
+# Run unit tests
+inv test.unit
+
+# Run all tests with coverage
+inv test
+```
+
+See `.claude/instructions.md` Testing Standards section for complete testing guidelines.
 
 ---
 
