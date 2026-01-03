@@ -2,6 +2,7 @@
 
 # Task automation
 invoke==2.2.0
+rich==13.9.4
 
 # Code quality (to be used in Phase 1+)
 # black==24.1.0

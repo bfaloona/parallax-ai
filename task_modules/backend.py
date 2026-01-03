@@ -18,7 +18,7 @@ def shell(c):
     print("  2. Pre-import common modules (SQLAlchemy, models, etc.)")
     print("")
     print("Expected command:")
-    print("  docker exec -it eager-pare-backend-1 python")
+    print("  docker-compose exec backend python")
 
 
 @task
@@ -60,7 +60,7 @@ def test(c, path=None, verbose=False, coverage=False):
         flags.append("--cov=app --cov-report=html --cov-report=term")
     test_path = path if path else "tests/"
 
-    print(f"  docker exec eager-pare-backend-1 pytest {' '.join(flags)} {test_path}")
+    print(f"  docker-compose exec backend pytest {' '.join(flags)} {test_path}")
 
 
 @task
@@ -119,14 +119,14 @@ def migrate(c, message=None):
         print("  2. Save to backend/alembic/versions/")
         print("")
         print("Expected command:")
-        print(f'  docker exec eager-pare-backend-1 alembic revision --autogenerate -m "{message}"')
+        print(f'  docker-compose exec backend alembic revision --autogenerate -m "{message}"')
     else:
         print("This command will:")
         print("  1. Run pending migrations")
         print("  2. Update database to latest schema")
         print("")
         print("Expected command:")
-        print("  docker exec eager-pare-backend-1 alembic upgrade head")
+        print("  docker-compose exec backend alembic upgrade head")
 
 
 @task
@@ -149,7 +149,7 @@ def downgrade(c, revision="base"):
     print("  2. Run down() methods in migrations")
     print("")
     print("Expected command:")
-    print(f"  docker exec eager-pare-backend-1 alembic downgrade {revision}")
+    print(f"  docker-compose exec backend alembic downgrade {revision}")
 
 
 @task
@@ -217,8 +217,7 @@ def exec_bash(c):
     print("→ backend.exec-bash - Phase 1+ (Minimal Round Trip)")
     print("⚠️  Not yet implemented - requires backend container running")
     print("")
-    container = "eager-pare-backend-1"
-    cmd = f"docker exec -it {container} /bin/bash"
+    cmd = "docker-compose exec backend /bin/bash"
 
     print(f"Expected command:")
     print(f"  {cmd}")

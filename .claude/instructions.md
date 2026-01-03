@@ -132,6 +132,136 @@ Refer to the Migration Guide for phase-by-phase implementation:
 
 ---
 
+## Critical Development Guidelines
+
+### Naming Conventions - Branch Directory Independence
+
+**IMPORTANT**: Claude Code runs in temporary git worktrees with auto-generated names (e.g., `eager-pare`, `unruffled-shirley`). These names change between sessions.
+
+**NEVER** hardcode branch directory names anywhere in the codebase:
+
+❌ **Bad Examples:**
+```python
+container_name = "eager-pare-backend-1"  # Will break in next session
+path = "/Users/user/.claude-worktrees/parallax-ai/eager-pare/uploads"
+```
+
+✅ **Good Examples:**
+```python
+# Use docker-compose service names
+c.run("docker-compose exec backend /bin/sh")
+
+# Use relative paths
+upload_dir = "./uploads"  # or os.getenv("UPLOAD_DIR")
+
+# Use dynamic container detection
+c.run("docker ps --filter name=backend", hide=True)
+```
+
+**Why This Matters**: Hardcoded worktree names will fail when:
+- Claude Code creates a new worktree in a different session
+- Another developer clones the repo
+- CI/CD runs in a different environment
+
+**What to Do Instead**:
+- Use `docker-compose exec` instead of `docker exec`
+- Use environment variables for paths
+- Use service names, not container names
+- Make invoke tasks work regardless of worktree name
+- Set explicit project name in docker-compose.yml (see Docker Compose Project Names below)
+
+---
+
+## Common Pitfalls (Phase 1 Learnings)
+
+### Docker Compose Project Names
+
+**CRITICAL**: Docker Compose uses the directory name as the default project name, which causes container names to include the worktree directory name.
+
+**Problem**: Without an explicit project name, containers are named `{directory}-{service}-1`:
+- In worktree `unruffled-shirley`: `unruffled-shirley-postgres-1`
+- In worktree `eager-pare`: `eager-pare-postgres-1`
+- This breaks consistency and makes container management difficult
+
+**Solution**: Set an explicit project name in docker-compose.yml:
+```yaml
+version: '3.8'
+
+name: parallax-ai  # ✓ Fixed project name
+
+services:
+  postgres:
+    # ...
+```
+
+Now containers are always named:
+- `parallax-ai-postgres-1`
+- `parallax-ai-backend-1`
+- `parallax-ai-frontend-1`
+
+Regardless of worktree directory name.
+
+### Docker Environment Variables
+
+**CRITICAL**: When using docker-compose with both `env_file` and `environment`:
+
+- Variables in `environment:` with `${VAR}` syntax get substituted from **shell environment**, NOT from .env file
+- If shell variable is empty, it overrides env_file with empty string
+- This causes silent failures that are hard to debug
+
+**Example - DON'T DO THIS:**
+```yaml
+env_file: .env
+environment:
+  API_KEY: ${API_KEY}  # ❌ Overrides .env if $API_KEY not in shell
+```
+
+**Example - DO THIS:**
+```yaml
+env_file: .env
+environment:
+  CORS_ORIGINS: http://localhost:3000  # ✓ Literal values OK
+  # API_KEY will come from .env file automatically
+```
+
+**Debug Command:**
+```bash
+docker-compose config | grep API_KEY  # Shows resolved value
+```
+
+### Python/FastAPI Dependencies
+
+- Always check Python version compatibility (3.11 vs 3.13)
+- Pin exact versions in requirements.txt to avoid conflicts
+- Common conflicts: pydantic/httpx, anthropic/httpx
+- Test `docker build` before `docker-compose up`
+
+**Phase 1 Working Versions:**
+```
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+anthropic==0.42.0
+pydantic==2.10.3
+httpx==0.27.2  # Must be compatible with anthropic
+```
+
+### Anthropic API
+
+- Model IDs change - always check current API docs
+- Current models (Jan 2025): `claude-sonnet-4-20250514`, `claude-opus-4-5-20251101`
+- Test with curl before integrating into app
+- Watch for 404 errors indicating wrong model ID
+
+**Test Command:**
+```bash
+curl -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "test"}' \
+  --max-time 10
+```
+
+---
+
 ## Success Criteria
 
 Migration complete when:

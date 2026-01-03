@@ -104,11 +104,11 @@ def check(c):
 
     # Check Docker containers
     print()
-    result = c.run("docker ps --format '{{.Names}}' | grep eager-pare", warn=True, hide=True)
-    if result.ok:
-        containers = result.stdout.strip().split('\n')
-        for container in containers:
-            print(f"✓ {'Container':20} {container}")
+    result = c.run("docker-compose ps --services --filter 'status=running'", warn=True, hide=True)
+    if result.ok and result.stdout.strip():
+        services = result.stdout.strip().split('\n')
+        for service in services:
+            print(f"✓ {'Container':20} {service}")
     else:
         print(f"⚠️  {'Containers':20} None running (run: inv docker.up)")
 

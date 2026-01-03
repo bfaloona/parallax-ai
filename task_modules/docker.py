@@ -1,6 +1,7 @@
 """Docker and infrastructure management tasks."""
 
 from invoke import task
+from task_modules import Colors
 
 
 @task
@@ -20,7 +21,10 @@ def up(c, detach=True, service=None):
     service_arg = service if service else ""
     cmd = f"docker-compose up {flag} {service_arg}".strip()
 
-    print(f"→ Running: {cmd}")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:  # Print if not using Rich (Rich prints directly)
+        print(result)
+    print()  # Blank line for separation
     c.run(cmd, pty=True)
 
 
@@ -39,13 +43,18 @@ def down(c, volumes=False, remove_orphans=True):
     flags = []
     if volumes:
         flags.append("-v")
-        print("⚠️  WARNING: This will delete all database data!")
+        result = Colors.warning("This will delete all database data!")
+        if result:
+            print(result)
     if remove_orphans:
         flags.append("--remove-orphans")
 
     cmd = f"docker-compose down {' '.join(flags)}".strip()
 
-    print(f"→ Running: {cmd}")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)
 
 
@@ -63,7 +72,10 @@ def restart(c, service=None):
     service_arg = service if service else ""
     cmd = f"docker-compose restart {service_arg}".strip()
 
-    print(f"→ Running: {cmd}")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)
 
 
@@ -91,7 +103,10 @@ def logs(c, service=None, follow=True, tail=100):
     service_arg = service if service else ""
     cmd = f"docker-compose logs {' '.join(flags)} {service_arg}".strip()
 
-    print(f"→ Running: {cmd}")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)
 
 
@@ -104,7 +119,10 @@ def ps(c):
     """
     cmd = "docker-compose ps"
 
-    print(f"→ Running: {cmd}")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)
 
 
@@ -128,7 +146,10 @@ def build(c, service=None, no_cache=False):
     service_arg = service if service else ""
     cmd = f"docker-compose build {' '.join(flags)} {service_arg}".strip()
 
-    print(f"→ Running: {cmd}")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)
 
 
@@ -144,16 +165,132 @@ def clean(c, confirm=True):
         inv docker.clean --no-confirm  # Skip confirmation
     """
     if confirm:
-        response = input("⚠️  This will DELETE ALL DATA and containers. Continue? (yes/no): ")
+        result = Colors.warning("This will DELETE ALL DATA and containers.")
+        if result:
+            print(result)
+        response = input("Continue? (yes/no): ")
         if response.lower() != "yes":
-            print("Aborted.")
+            result = Colors.info("Aborted")
+            if result:
+                print(result)
             return
 
     cmd = "docker-compose down -v --remove-orphans"
 
-    print(f"→ Running: {cmd}")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)
-    print("✓ Cleanup complete")
+    result = Colors.success("Cleanup complete")
+    if result:
+        print(result)
+
+
+@task
+def info(c):
+    """Show Docker system status with formatted tables.
+
+    Displays:
+    - Running containers with status and ports
+    - Docker images (top 10 by size)
+    - Disk usage summary with reclaimable space
+    - Quick action commands
+
+    Examples:
+        inv docker.info
+    """
+    try:
+        from rich.console import Console
+        from rich.table import Table
+        from rich.panel import Panel
+        import json
+
+        console = Console()
+
+        # 1. Running Containers
+        result = c.run("docker ps --format '{{json .}}'", hide=True, warn=True)
+        if result.ok and result.stdout.strip():
+            containers_table = Table(title="🐳 Running Containers", show_header=True, header_style="bold cyan")
+            containers_table.add_column("Name", style="cyan", no_wrap=True)
+            containers_table.add_column("Status", style="green")
+            containers_table.add_column("Ports", style="yellow")
+
+            for line in result.stdout.strip().split('\n'):
+                if line:
+                    container = json.loads(line)
+                    containers_table.add_row(
+                        container['Names'],
+                        container['Status'],
+                        container.get('Ports', '-')
+                    )
+
+            console.print(containers_table)
+            console.print()
+        else:
+            console.print("[yellow]No running containers[/yellow]\n")
+
+        # 2. Docker Images (Top 10)
+        result = c.run("docker images --format '{{json .}}'", hide=True, warn=True)
+        if result.ok and result.stdout.strip():
+            images_table = Table(title="📦 Docker Images (Top 10 by size)", show_header=True, header_style="bold cyan")
+            images_table.add_column("Repository", style="cyan")
+            images_table.add_column("Tag", style="yellow")
+            images_table.add_column("Size", style="magenta", justify="right")
+
+            lines = result.stdout.strip().split('\n')[:10]
+            for line in lines:
+                if line:
+                    img = json.loads(line)
+                    images_table.add_row(
+                        img['Repository'][:40],
+                        img['Tag'][:20],
+                        img['Size']
+                    )
+
+            console.print(images_table)
+            console.print()
+
+        # 3. Disk Usage
+        result = c.run("docker system df", hide=True, warn=True)
+        if result.ok:
+            console.print("[bold cyan]💾 Disk Usage[/bold cyan]")
+            console.print(result.stdout)
+            console.print()
+
+        # 4. Quick Actions Panel
+        actions = Panel(
+            "[cyan]inv docker.clean[/cyan]        - Remove unused containers, images, and volumes\n"
+            "[cyan]inv docker.ps[/cyan]           - List all containers (running and stopped)\n"
+            "[cyan]inv docker.logs --service=X[/cyan] - View logs for a specific service\n"
+            "[cyan]inv docker.up[/cyan]           - Start all services\n"
+            "[cyan]inv docker.down[/cyan]         - Stop all services",
+            title="💡 Quick Actions",
+            border_style="blue",
+            padding=(1, 2)
+        )
+        console.print(actions)
+
+    except ImportError:
+        # Fallback to simple output if Rich not available
+        result = Colors.cmd("Docker System Information")
+        if result:
+            print(result)
+        print("=" * 60)
+
+        print(f"\n{Colors.BOLD}Running Containers:{Colors.END}")
+        c.run("docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'", pty=True)
+
+        print(f"\n{Colors.BOLD}Docker Images (Top 10):{Colors.END}")
+        c.run("docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}' | head -11", pty=True)
+
+        print(f"\n{Colors.BOLD}Disk Usage:{Colors.END}")
+        c.run("docker system df", pty=True)
+
+        print(f"\n{Colors.BOLD}Quick Actions:{Colors.END}")
+        print("  inv docker.clean        - Remove unused data")
+        print("  inv docker.ps           - List containers")
+        print("  inv docker.logs --service=X - View logs")
 
 
 @task
@@ -168,9 +305,11 @@ def exec_shell(c, service, user=None):
         inv docker.exec-shell --service=backend
         inv docker.exec-shell --service=postgres --user=postgres
     """
-    container_name = f"eager-pare-{service}-1"
     user_flag = f"-u {user}" if user else ""
-    cmd = f"docker exec -it {user_flag} {container_name} /bin/sh"
+    cmd = f"docker-compose exec {user_flag} {service} /bin/sh".strip()
 
-    print(f"→ Running: docker exec -it {container_name} /bin/sh")
+    result = Colors.cmd(f"Opening shell in {service} container")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)

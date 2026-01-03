@@ -2,6 +2,7 @@
 
 from invoke import task
 from datetime import datetime
+from task_modules import Colors
 
 
 @task
@@ -11,10 +12,12 @@ def shell(c):
     Examples:
         inv db.shell
     """
-    container = "eager-pare-postgres-1"
-    cmd = f"docker exec -it {container} psql -U parallax -d parallax_ai"
+    cmd = "docker-compose exec postgres psql -U parallax -d parallax_ai"
 
-    print(f"→ Running: docker exec -it {container} psql -U parallax -d parallax_ai")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)
 
 
@@ -30,31 +33,48 @@ def reset(c, confirm=True):
         inv db.reset --no-confirm  # Skip confirmation
     """
     if confirm:
-        response = input("⚠️  This will DELETE ALL DATABASE DATA. Continue? (yes/no): ")
+        result = Colors.warning("This will DELETE ALL DATABASE DATA.")
+        if result:
+            print(result)
+        response = input("Continue? (yes/no): ")
         if response.lower() != "yes":
-            print("Aborted.")
+            result = Colors.info("Aborted")
+            if result:
+                print(result)
             return
 
-    print("→ Running: docker-compose down -v")
+    result = Colors.cmd("Running: docker-compose down -v")
+    if result:
+        print(result)
+    print()
     c.run("docker-compose down -v", pty=True)
 
-    print("→ Running: docker-compose up -d postgres")
+    result = Colors.cmd("Running: docker-compose up -d postgres")
+    if result:
+        print(result)
+    print()
     c.run("docker-compose up -d postgres", pty=True)
 
-    print("✓ Database reset complete. Waiting for health check...")
+    result = Colors.success("Database reset complete. Waiting for health check...")
+    if result:
+        print(result)
     c.run("sleep 5", pty=True)
 
-    print("→ Running: docker exec eager-pare-postgres-1 psql -U parallax -d parallax_ai -c '\\l'")
-    result = c.run(
-        "docker exec eager-pare-postgres-1 psql -U parallax -d parallax_ai -c '\\l'",
-        pty=True,
-        warn=True
-    )
+    cmd = "docker-compose exec postgres psql -U parallax -d parallax_ai -c '\\l'"
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
+    verify_result = c.run(cmd, pty=True, warn=True)
 
-    if result.ok:
-        print("✓ Database verified and ready")
+    if verify_result.ok:
+        result = Colors.success("Database verified and ready")
+        if result:
+            print(result)
     else:
-        print("⚠️  Database may still be initializing. Try 'inv db.shell' in a few seconds.")
+        result = Colors.warning("Database may still be initializing. Try 'inv db.shell' in a few seconds.")
+        if result:
+            print(result)
 
 
 @task
@@ -72,12 +92,17 @@ def backup(c, filename=None):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"backup_{timestamp}.sql"
 
-    container = "eager-pare-postgres-1"
-    cmd = f"docker exec {container} pg_dump -U parallax parallax_ai > {filename}"
+    cmd = f"docker-compose exec -T postgres pg_dump -U parallax parallax_ai > {filename}"
 
-    print(f"→ Running: docker exec {container} pg_dump -U parallax parallax_ai > {filename}")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)
-    print(f"✓ Database backed up to: {filename}")
+
+    result = Colors.success(f"Database backed up to: {filename}")
+    if result:
+        print(result)
 
 
 @task
@@ -92,23 +117,34 @@ def restore(c, filename, confirm=True):
         inv db.restore --filename=backup_20260102_120000.sql
     """
     if confirm:
-        response = input(f"⚠️  This will REPLACE ALL DATA with {filename}. Continue? (yes/no): ")
+        result = Colors.warning(f"This will REPLACE ALL DATA with {filename}.")
+        if result:
+            print(result)
+        response = input("Continue? (yes/no): ")
         if response.lower() != "yes":
-            print("Aborted.")
+            result = Colors.info("Aborted")
+            if result:
+                print(result)
             return
 
-    container = "eager-pare-postgres-1"
-
     # First, reset the database
-    print("→ Resetting database...")
+    result = Colors.info("Resetting database...")
+    if result:
+        print(result)
     reset(c, confirm=False)
 
     # Restore from file
-    cmd = f"docker exec -i {container} psql -U parallax parallax_ai < {filename}"
+    cmd = f"docker-compose exec -T postgres psql -U parallax parallax_ai < {filename}"
 
-    print(f"→ Running: docker exec -i {container} psql -U parallax parallax_ai < {filename}")
+    result = Colors.cmd(f"Running: {cmd}")
+    if result:
+        print(result)
+    print()
     c.run(cmd, pty=True)
-    print(f"✓ Database restored from: {filename}")
+
+    result = Colors.success(f"Database restored from: {filename}")
+    if result:
+        print(result)
 
 
 @task
@@ -164,31 +200,45 @@ def status(c):
     Examples:
         inv db.status
     """
-    container = "eager-pare-postgres-1"
+    result = Colors.info("Checking container status...")
+    if result:
+        print(result)
 
-    print("→ Checking container status...")
-    result = c.run(f"docker ps | grep {container}", warn=True, hide=True)
+    # Check if postgres service is running
+    check_result = c.run("docker-compose ps postgres", warn=True, hide=True)
 
-    if not result.ok:
-        print(f"✗ Container '{container}' is not running")
+    if not check_result.ok or "Up" not in check_result.stdout:
+        result = Colors.error("PostgreSQL container is not running")
+        if result:
+            print(result)
         print("  Start with: inv docker.up --service=postgres")
         return
 
-    print(f"✓ Container '{container}' is running")
+    result = Colors.success("PostgreSQL container is running")
+    if result:
+        print(result)
 
-    print("\n→ Checking database connection...")
-    cmd = f"docker exec {container} psql -U parallax -d parallax_ai -c '\\l'"
-    result = c.run(cmd, warn=True, hide=True)
+    print()
+    result = Colors.info("Checking database connection...")
+    if result:
+        print(result)
 
-    if result.ok:
-        print("✓ Database 'parallax_ai' is accessible")
+    cmd = "docker-compose exec -T postgres psql -U parallax -d parallax_ai -c '\\l'"
+    db_result = c.run(cmd, warn=True, hide=True)
+
+    if db_result.ok:
+        result = Colors.success("Database 'parallax_ai' is accessible")
+        if result:
+            print(result)
 
         # Show table count
-        cmd = f"docker exec {container} psql -U parallax -d parallax_ai -t -c \"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'\""
-        result = c.run(cmd, warn=True, hide=True)
-        if result.ok:
-            table_count = result.stdout.strip()
+        cmd = "docker-compose exec -T postgres psql -U parallax -d parallax_ai -t -c \"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'\""
+        count_result = c.run(cmd, warn=True, hide=True)
+        if count_result.ok:
+            table_count = count_result.stdout.strip()
             print(f"  Tables: {table_count}")
     else:
-        print("✗ Cannot connect to database")
+        result = Colors.error("Cannot connect to database")
+        if result:
+            print(result)
         print("  Database may still be initializing. Try again in a few seconds.")

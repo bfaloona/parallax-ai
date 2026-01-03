@@ -13,8 +13,7 @@ def shell(c):
     print("→ frontend.shell - Phase 1+ (Minimal Round Trip)")
     print("⚠️  Not yet implemented - requires frontend container running")
     print("")
-    container = "eager-pare-frontend-1"
-    cmd = f"docker exec -it {container} /bin/sh"
+    cmd = "docker-compose exec frontend /bin/sh"
 
     print("Expected command:")
     print(f"  {cmd}")
@@ -56,7 +55,7 @@ def test(c, watch=False, coverage=False):
     if coverage:
         flags.append("--coverage")
 
-    print(f"  docker exec eager-pare-frontend-1 npm test {' '.join(flags)}")
+    print(f"  docker-compose exec frontend npm test {' '.join(flags)}")
 
 
 @task
@@ -84,11 +83,11 @@ def lint(c, fix=False):
     print("")
     print("Expected commands:")
     if fix:
-        print("  docker exec eager-pare-frontend-1 npm run lint:fix")
-        print("  docker exec eager-pare-frontend-1 npm run format:write")
+        print("  docker-compose exec frontend npm run lint:fix")
+        print("  docker-compose exec frontend npm run format:write")
     else:
-        print("  docker exec eager-pare-frontend-1 npm run lint")
-        print("  docker exec eager-pare-frontend-1 npm run format:check")
+        print("  docker-compose exec frontend npm run lint")
+        print("  docker-compose exec frontend npm run format:check")
 
 
 @task
@@ -106,7 +105,7 @@ def type_check(c):
     print("  2. Report type errors without building")
     print("")
     print("Expected command:")
-    print("  docker exec eager-pare-frontend-1 npm run type-check")
+    print("  docker-compose exec frontend npm run type-check")
 
 
 @task
@@ -133,7 +132,7 @@ def build(c, production=True):
     print("")
     print("Expected command:")
     cmd = "npm run build" if production else "npm run build:dev"
-    print(f"  docker exec eager-pare-frontend-1 {cmd}")
+    print(f"  docker-compose exec frontend {cmd}")
 
 
 @task
@@ -189,7 +188,7 @@ def analyze(c):
     print("  3. Open report in browser")
     print("")
     print("Expected command:")
-    print("  docker exec eager-pare-frontend-1 npm run analyze")
+    print("  docker-compose exec frontend npm run analyze")
 
 
 @task
@@ -218,4 +217,4 @@ def storybook(c, build=False):
     print("")
     print("Expected command:")
     cmd = "npm run storybook:build" if build else "npm run storybook"
-    print(f"  docker exec -it eager-pare-frontend-1 {cmd}")
+    print(f"  docker-compose exec frontend {cmd}")
