@@ -7,6 +7,15 @@ from app.schemas.auth import (
     TokenData,
     UserResponse,
 )
+from app.schemas.conversation import (
+    MessageCreate,
+    MessageResponse,
+    ConversationCreate,
+    ConversationUpdate,
+    ConversationResponse,
+    ConversationWithMessages,
+    ModeUpdate,
+)
 
 __all__ = [
     "UserRegister",
@@ -14,4 +23,11 @@ __all__ = [
     "Token",
     "TokenData",
     "UserResponse",
+    "MessageCreate",
+    "MessageResponse",
+    "ConversationCreate",
+    "ConversationUpdate",
+    "ConversationResponse",
+    "ConversationWithMessages",
+    "ModeUpdate",
 ]

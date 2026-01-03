@@ -1,110 +1,19 @@
 """Authentication router with register, login, and token management."""
 
-import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.dependencies import get_db
+from app.dependencies import get_db, create_access_token, get_current_active_user
 from app.models.user import User
-from app.schemas.auth import UserRegister, Token, UserResponse, TokenData
+from app.schemas.auth import UserRegister, Token, UserResponse
 
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
-
-# JWT configuration
-SECRET_KEY = os.getenv("JWT_SECRET", "your-secret-key-here")
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-
-
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    """Create a JWT access token.
-
-    Args:
-        data: Data to encode in the token
-        expires_delta: Optional expiration time delta
-
-    Returns:
-        Encoded JWT token
-    """
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: Annotated[AsyncSession, Depends(get_db)]
-) -> User:
-    """Get current user from JWT token.
-
-    Args:
-        token: JWT access token
-        db: Database session
-
-    Returns:
-        Current user object
-
-    Raises:
-        HTTPException: If token is invalid or user not found
-    """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str | None = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-        token_data = TokenData(user_id=UUID(user_id))
-    except JWTError:
-        raise credentials_exception
-
-    # Get user from database
-    result = await db.execute(select(User).where(User.id == token_data.user_id))
-    user = result.scalar_one_or_none()
-
-    if user is None:
-        raise credentials_exception
-
-    return user
-
-
-async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)]
-) -> User:
-    """Get current active user.
-
-    Args:
-        current_user: Current user from token
-
-    Returns:
-        Active user object
-
-    Raises:
-        HTTPException: If user is inactive
-    """
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
+router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
