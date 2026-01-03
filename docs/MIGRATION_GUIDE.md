@@ -27,7 +27,7 @@
 |-------|------|--------|--------|
 | 0 | Infrastructure Setup | ✓ Complete | — |
 | 1 | Minimal Round Trip | ✓ Complete | — |
-| 2 | Database & Auth | Pending | EXPANDED |
+| 2 | Database & Auth | ✓ Complete | EXPANDED |
 | 3 | Conversation CRUD | Pending | — |
 | 4 | Mode System | Pending | — |
 | 5 | Domain System | Pending | NEW (Optional) |
@@ -1021,3 +1021,93 @@ NEXTAUTH_URL=https://your-domain.com
 
 5. **Check progress:**
    > "Which phases are complete? What's next?"
+---
+
+## Ongoing Improvements & Future Enhancements
+
+This section tracks improvements, features, and tasks that should be incorporated into the migration plan. **Review this section periodically** and integrate items into logical phases when appropriate.
+
+### DevOps & Deployment
+
+- [ ] **GitHub Actions CI/CD**
+  - Set up automated testing on push/PR
+  - Add deployment pipeline to staging environment
+  - Consider: Hetzner Cloud staging instance or similar
+  - Deployment target: Coolify on staging VPS
+  - **Suggested Phase:** Add to Phase 14 (Production Deployment) or create new Phase 14.5
+
+### Security Hardening
+
+- [ ] **Frontend Security Fortification**
+  - Protect against XSS (Cross-Site Scripting)
+  - Implement CSP (Content Security Policy) headers
+  - Add CSRF protection for forms
+  - Secure cookie settings (httpOnly, secure, sameSite)
+  - Input sanitization and validation
+  - Rate limiting on sensitive endpoints
+  - Consider: DOMPurify for user-generated content
+  - **Suggested Phase:** Add to Phase 10 (UI Polish) or create Phase 10.5 (Security Hardening)
+
+- [ ] **Backend Security Audit**
+  - SQL injection prevention (verify SQLAlchemy usage)
+  - Command injection prevention
+  - Server-side input validation
+  - Secure password reset flow
+  - Session management review
+  - API rate limiting implementation
+  - **Suggested Phase:** Add to Phase 2 verification or Phase 10.5
+
+### Database Management
+
+- [ ] **PostgreSQL Admin Interface**
+  - Research options:
+    - **pgAdmin** (full-featured GUI)
+    - **django-admin-honeypot** (if using Django)
+    - **Flask-Admin** with SQLAlchemy (lightweight)
+    - **Adminer** (single-file PHP, simple)
+    - **DBeaver** (desktop client)
+  - Requirements:
+    - View table data
+    - Access logs and query performance
+    - User management
+    - Backup/restore capabilities
+  - Security considerations: IP whitelist, strong auth
+  - **Suggested Phase:** Add to Phase 8 (Admin Dashboard) as separate admin DB tools section
+
+### How to Use This Section
+
+1. **Regular Review:** Check this section at the end of each phase
+2. **Prioritize:** Discuss which items are critical vs. nice-to-have
+3. **Integrate:** Move items into appropriate phases with:
+   - Clear acceptance criteria
+   - Testing requirements
+   - Documentation updates
+4. **Track Progress:** Mark items as complete when fully integrated into a phase
+5. **Add New Items:** Append new improvement ideas as they arise
+
+### Example Integration Workflow
+
+```
+1. Review "Ongoing Improvements" section
+2. Identify item: "Frontend Security Fortification"
+3. Decision: Critical for production launch
+4. Action: Add to Phase 10 (UI Polish) as "10.6: Security Hardening"
+5. Update Phase 10 with:
+   - Security checklist
+   - Testing requirements
+   - Verification criteria
+6. Mark item in this section as integrated
+```
+
+---
+
+## Notes for AI Assistants
+
+When helping with this project:
+
+1. **Check this section regularly** - Don't let todos accumulate indefinitely
+2. **Suggest integration points** - Recommend where items fit best in existing phases
+3. **Ask about priorities** - Clarify with the user which improvements are most important
+4. **Update both sections** - When integrating an item, update both the phase and this section
+5. **Track phase status** - Update Phase Summary table as phases are completed
+

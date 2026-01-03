@@ -6,10 +6,14 @@ from dotenv import load_dotenv
 
 from app.dependencies import get_chat_service
 from app.services import ChatService
+from app.routers import auth
 
 load_dotenv()
 
 app = FastAPI(title="Parallax AI API")
+
+# Register routers
+app.include_router(auth.router, prefix="/api")
 
 # CORS
 app.add_middleware(
