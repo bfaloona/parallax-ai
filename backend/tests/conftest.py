@@ -3,6 +3,7 @@
 import sys
 import os
 import pytest
+import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 # Add parent directory (backend/) to Python path so we can import 'app'
@@ -17,7 +18,7 @@ def anyio_backend():
     return "asyncio"
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client():
     """Create test HTTP client for FastAPI app.
 

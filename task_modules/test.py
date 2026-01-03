@@ -6,7 +6,11 @@ from task_modules import Colors
 
 @task
 def test(c, verbose=False, coverage=True, failfast=False):
-    """Run all backend tests (unit only for Phase 1).
+    """Run all backend tests (unit + integration).
+
+    This runs the full test suite including:
+    - Unit tests (fast, mocked)
+    - Integration tests (real PostgreSQL database)
 
     Args:
         verbose: Verbose output
@@ -14,9 +18,9 @@ def test(c, verbose=False, coverage=True, failfast=False):
         failfast: Stop on first failure
 
     Examples:
-        inv test
-        inv test --verbose
-        inv test --no-coverage --failfast
+        inv test                           # Run all tests with coverage
+        inv test --verbose                 # Verbose output
+        inv test --no-coverage --failfast  # Fast mode, stop on first fail
     """
 
     flags = ["-v"] if verbose else []
@@ -27,10 +31,7 @@ def test(c, verbose=False, coverage=True, failfast=False):
     if failfast:
         flags.append("-x")
 
-    # Run unit tests (integration tests will be added in later phases)
-    flags.append("-m")
-    flags.append("unit")
-
+    # Run all tests (unit + integration)
     cmd = f"docker-compose exec backend pytest {' '.join(flags)}"
 
     result = Colors.command(cmd)
@@ -109,27 +110,56 @@ def test_unit(c, verbose=False, coverage=True, path=None):
 
 
 @task(name="integration")
-def test_integration(c, verbose=False):
-    """Run integration tests (database, external services).
+def test_integration(c, verbose=False, coverage=False, path=None):
+    """Run integration tests with real PostgreSQL database.
 
     Integration tests should:
     - Test interactions between components
-    - Use real database (test instance)
+    - Use real PostgreSQL database (parallax_ai_test)
     - Test API endpoints end-to-end
-    - Verify data persistence
-
-    NOTE: Not implemented yet - will be added in Phase 2+
+    - Verify data persistence and transactions
 
     Args:
         verbose: Verbose output
+        coverage: Generate coverage report (default: False, faster for dev)
+        path: Specific test file or directory (relative to tests/)
 
     Examples:
         inv test.integration
         inv test.integration --verbose
+        inv test.integration --coverage
+        inv test.integration --path=integration/test_conversation_lifecycle.py
     """
-    result = Colors.warning("Integration tests not yet implemented (Phase 2+)")
+    flags = ["-v"] if verbose else []
+    flags.append("-m")
+    flags.append("integration")
+    flags.append("--no-cov")  # Skip coverage by default for speed
+
+    if coverage:
+        flags.remove("--no-cov")
+        flags.append("--cov=app")
+        flags.append("--cov-report=term-missing")
+
+    test_path = f"tests/{path}" if path else "tests/integration/"
+    cmd = f"docker-compose exec backend pytest {' '.join(flags)} {test_path}"
+
+    result = Colors.command(cmd)
     if result:
         print(result)
+    print()
+
+    test_result = c.run(cmd, warn=True, pty=True)
+
+    if test_result.ok:
+        result = Colors.success("Integration tests passed!")
+        if result:
+            print(result)
+    else:
+        result = Colors.error("Some integration tests failed")
+        if result:
+            print(result)
+        return False
+
     return True
 
 

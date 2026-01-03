@@ -6,12 +6,17 @@ rich==13.9.4
 
 # Testing framework
 pytest==8.3.4
-pytest-asyncio==0.24.0
+pytest-asyncio==0.24.0  # Keep for existing tests
+pytest-anyio  # FastAPI 2025 standard for new async tests
 pytest-cov==6.0.0
 pytest-mock==3.14.0
 faker==33.1.0
 httpx==0.27.2
 aiosqlite==0.19.0
+
+# Integration testing with real databases
+testcontainers>=4.8.2
+asgi-lifespan  # For lifespan event testing
 
 # Acceptance testing (Selenium)
 selenium==4.27.1
