@@ -28,7 +28,8 @@
 | 0 | Infrastructure Setup | ✓ Complete | — |
 | 1 | Minimal Round Trip | ✓ Complete | — |
 | 2 | Database & Auth | ✓ Complete | EXPANDED |
-| 3 | Conversation CRUD | Pending | — |
+| 3 | Conversation CRUD | ✓ Complete | — |
+| 3.1 | Testing Infrastructure | Pending | NEW |
 | 4 | Mode System | Pending | — |
 | 5 | Domain System | Pending | NEW (Optional) |
 | 6 | Model Selection | Pending | — |
@@ -302,13 +303,187 @@ No changes from v1.0. See original documentation.
 
 ### Phase 3 Verification
 
-- [ ] `GET /api/conversations` returns user's conversations
-- [ ] `POST /api/conversations` creates new conversation
-- [ ] `GET /api/conversations/{id}` returns conversation with messages
-- [ ] `DELETE /api/conversations/{id}` removes conversation
-- [ ] `PATCH /api/conversations/{id}/mode` updates mode
-- [ ] All endpoints require valid JWT
-- [ ] Users can only access their own conversations
+- [X] `GET /api/conversations` returns user's conversations
+- [X] `POST /api/conversations` creates new conversation
+- [X] `GET /api/conversations/{id}` returns conversation with messages
+- [X] `DELETE /api/conversations/{id}` removes conversation
+- [X] `PATCH /api/conversations/{id}/mode` updates mode
+- [X] All endpoints require valid JWT
+- [X] Users can only access their own conversations
+
+---
+
+## Phase 3.1: Testing Infrastructure (NEW)
+
+**Goal:** Implement modern testing infrastructure with testcontainers and pytest-anyio
+
+> ⚠️ **Optional but Recommended:** Can be deferred to after v1 launch, but provides better test coverage and confidence.
+
+### 3.1.1 Dependencies
+
+Add to `backend/requirements-dev.txt`:
+
+```txt
+# Testing Infrastructure
+testcontainers>=4.8.2
+pytest-anyio  # FastAPI 2025 standard (replaces pytest-asyncio for new tests)
+asgi-lifespan  # For lifespan event testing
+```
+
+### 3.1.2 Migration from pytest-asyncio to pytest-anyio
+
+**Why:** FastAPI official docs now recommend pytest-anyio for async testing (2025 standard).
+
+**Benefits:**
+- 4.2x performance improvement
+- Better event loop management
+- Simpler API
+- Official FastAPI support
+
+**Migration Steps:**
+
+1. Update pytest.ini:
+```ini
+[pytest]
+# Remove asyncio_mode if present
+# asyncio_mode = auto  # DELETE THIS
+
+# Keep existing markers and other config
+markers =
+    unit: Unit tests
+    integration: Integration tests
+    acceptance: Acceptance tests
+```
+
+2. Add anyio fixture to `tests/conftest.py`:
+```python
+import pytest
+
+@pytest.fixture(scope="session")
+def anyio_backend():
+    """Configure async backend for AnyIO."""
+    return "asyncio"
+```
+
+3. Update test markers:
+```python
+# Old (pytest-asyncio)
+@pytest.mark.asyncio
+async def test_something():
+    pass
+
+# New (pytest-anyio)
+@pytest.mark.anyio
+async def test_something():
+    pass
+```
+
+**Note:** Both can coexist during migration. Existing `@pytest.mark.asyncio` tests will continue to work.
+
+### 3.1.3 Testcontainers Setup
+
+Create `backend/tests/integration/conftest.py`:
+
+```python
+import pytest
+from testcontainers.postgres import PostgresContainer
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
+from app.models.base import Base
+
+@pytest.fixture(scope="session")
+def postgres_container():
+    """Provide PostgreSQL container for integration tests."""
+    with PostgresContainer("postgres:16-alpine") as postgres:
+        yield postgres
+
+@pytest.fixture(scope="session")
+async def test_engine(postgres_container):
+    """Create async engine for test database."""
+    # Convert psycopg2 URL to asyncpg
+    database_url = postgres_container.get_connection_url().replace(
+        "psycopg2", "asyncpg"
+    )
+
+    engine = create_async_engine(database_url, echo=False)
+
+    # Create all tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    yield engine
+
+    # Cleanup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
+
+@pytest.fixture
+async def db_session(test_engine):
+    """Provide transactional database session for each test."""
+    async_session = async_sessionmaker(
+        test_engine,
+        expire_on_commit=False
+    )
+
+    async with async_session() as session:
+        async with session.begin():
+            yield session
+            # Rollback after each test for isolation
+            await session.rollback()
+
+@pytest.fixture
+async def client(db_session):
+    """Provide HTTP client with database override."""
+    from httpx import AsyncClient, ASGITransport
+    from app.main import app
+    from app.dependencies import get_db
+
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as client:
+        yield client
+
+    app.dependency_overrides.clear()
+```
+
+### 3.1.4 Enable Integration Tests
+
+Update `backend/tests/integration/test_conversation_lifecycle.py`:
+
+1. Remove the global `pytestmark` skip
+2. Change `@pytest.mark.asyncio` to `@pytest.mark.anyio`
+3. Tests should now run with real PostgreSQL via testcontainers
+
+### Phase 3.1 Verification
+
+- [ ] testcontainers-python installed
+- [ ] pytest-anyio configured
+- [ ] PostgreSQL container fixtures working
+- [ ] Integration tests pass with real PostgreSQL
+- [ ] Test isolation verified (tests don't affect each other)
+- [ ] CI/CD compatible (testcontainers work in GitHub Actions)
+
+### Phase 3.1 Notes
+
+**Time Investment:** ~2-3 hours for full setup and debugging
+
+**Benefits:**
+- High-fidelity testing with real PostgreSQL
+- No UUID/SQLite compatibility issues
+- Better CI/CD integration
+- Modern testing patterns (2025 standard)
+
+**Can Skip If:**
+- Under time pressure for v1 launch
+- Manual testing + production monitoring acceptable
+- Plan to add comprehensive testing post-launch
 
 ---
 
