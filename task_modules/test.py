@@ -18,10 +18,6 @@ def test(c, verbose=False, coverage=True, failfast=False):
         inv test --verbose
         inv test --no-coverage --failfast
     """
-    result = Colors.info("Running backend tests in container...")
-    if result:
-        print(result)
-    print()
 
     flags = ["-v"] if verbose else []
     if coverage:
@@ -37,7 +33,7 @@ def test(c, verbose=False, coverage=True, failfast=False):
 
     cmd = f"docker-compose exec backend pytest {' '.join(flags)}"
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -80,10 +76,6 @@ def test_unit(c, verbose=False, coverage=True, path=None):
         inv test.unit --verbose
         inv test.unit --path=unit/test_api_chat.py
     """
-    result = Colors.info("Running unit tests in backend container...")
-    if result:
-        print(result)
-    print()
 
     flags = ["-v"] if verbose else []
     flags.append("-m")
@@ -96,7 +88,7 @@ def test_unit(c, verbose=False, coverage=True, path=None):
     test_path = f"tests/{path}" if path else "tests/unit/"
     cmd = f"docker-compose exec backend pytest {' '.join(flags)} {test_path}"
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -185,7 +177,7 @@ def test_acceptance(c, verbose=False, headless=True):
     else:
         cmd = f"pytest {' '.join(flags)} tests/acceptance/"
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()

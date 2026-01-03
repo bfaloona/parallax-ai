@@ -97,5 +97,16 @@ class Colors:
         else:
             return text
 
+    @staticmethod
+    def command(cmd):
+        """Format command line with >> prefix and colored command only."""
+        if Colors._use_rich:
+            Colors._console.print(f">> [cyan]{cmd}[/cyan]")
+            return ""  # Already printed
+        elif Colors._supports_color():
+            return f">> {Colors.CYAN}{cmd}{Colors.END}"
+        else:
+            return f">> {cmd}"
+
 
 __all__ = ['Colors']

@@ -14,7 +14,7 @@ def shell(c):
     """
     cmd = "docker-compose exec postgres psql -U parallax -d parallax_ai"
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -43,13 +43,13 @@ def reset(c, confirm=True):
                 print(result)
             return
 
-    result = Colors.cmd("Running: docker-compose down -v")
+    result = Colors.command(" docker-compose down -v")
     if result:
         print(result)
     print()
     c.run("docker-compose down -v", pty=True)
 
-    result = Colors.cmd("Running: docker-compose up -d postgres")
+    result = Colors.command(" docker-compose up -d postgres")
     if result:
         print(result)
     print()
@@ -61,7 +61,7 @@ def reset(c, confirm=True):
     c.run("sleep 5", pty=True)
 
     cmd = "docker-compose exec postgres psql -U parallax -d parallax_ai -c '\\l'"
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -94,7 +94,7 @@ def backup(c, filename=None):
 
     cmd = f"docker-compose exec -T postgres pg_dump -U parallax parallax_ai > {filename}"
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -136,7 +136,7 @@ def restore(c, filename, confirm=True):
     # Restore from file
     cmd = f"docker-compose exec -T postgres psql -U parallax parallax_ai < {filename}"
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()

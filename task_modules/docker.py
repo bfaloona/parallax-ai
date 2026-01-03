@@ -21,7 +21,7 @@ def up(c, detach=True, service=None):
     service_arg = service if service else ""
     cmd = f"docker-compose up {flag} {service_arg}".strip()
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:  # Print if not using Rich (Rich prints directly)
         print(result)
     print()  # Blank line for separation
@@ -51,7 +51,7 @@ def down(c, volumes=False, remove_orphans=True):
 
     cmd = f"docker-compose down {' '.join(flags)}".strip()
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -72,7 +72,7 @@ def restart(c, service=None):
     service_arg = service if service else ""
     cmd = f"docker-compose restart {service_arg}".strip()
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -103,7 +103,7 @@ def logs(c, service=None, follow=True, tail=100):
     service_arg = service if service else ""
     cmd = f"docker-compose logs {' '.join(flags)} {service_arg}".strip()
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -119,7 +119,7 @@ def ps(c):
     """
     cmd = "docker-compose ps"
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -146,7 +146,7 @@ def build(c, service=None, no_cache=False):
     service_arg = service if service else ""
     cmd = f"docker-compose build {' '.join(flags)} {service_arg}".strip()
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
@@ -177,7 +177,7 @@ def clean(c, confirm=True):
 
     cmd = "docker-compose down -v --remove-orphans"
 
-    result = Colors.cmd(f"Running: {cmd}")
+    result = Colors.command(cmd)
     if result:
         print(result)
     print()
