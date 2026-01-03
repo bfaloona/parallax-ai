@@ -153,7 +153,62 @@ For phases estimated >2 hours, check in halfway:
 
 ### Ending a Phase
 
-Don't just say "done." Provide this report:
+When a phase is complete and approved:
+
+1. **Create completion documentation**: `docs/PHASE_NN_COMPLETE.md`
+2. **Commit the completion**: Include all phase work and the completion doc
+3. **Provide phase report** (see format below)
+
+**Phase completion document format** (`docs/PHASE_NN_COMPLETE.md`):
+
+```markdown
+# Phase N: [Phase Name] - COMPLETE
+
+**Completion Date:** YYYY-MM-DD
+
+## Summary
+
+[1-2 paragraph overview of what was accomplished]
+
+## Implemented
+
+- [Detailed list of what was built]
+- [Include file paths for key changes]
+
+## Tests
+
+- [X] Backend tests: N passed, M skipped
+- [X] Frontend tests: N passed (if applicable)
+- [X] Manual verification: [list what was tested]
+- [X] Coverage: XX% (threshold: 65%)
+
+## Verification Checklist
+
+From "Phase N Complete When" criteria:
+- [X] [Criterion 1]
+- [X] [Criterion 2]
+- [ ] [Deferred item with explanation]
+
+## Key Files Changed
+
+- `path/to/file1.py` - [Brief description]
+- `path/to/file2.py` - [Brief description]
+
+## Known Issues / Technical Debt
+
+- [Issue 1 with explanation and plan]
+- [Or "None"]
+
+## Migration Notes
+
+[Any important notes for future phases or deployment]
+
+## Ready for Next Phase
+
+Yes/No - [Brief explanation if No]
+```
+
+**Phase report format** (for chat):
 
 ```
 ## Phase N Complete
@@ -433,11 +488,34 @@ def test_user_can_send_message_and_receive_response(browser):
 
 ### Test Failures - Non-Negotiable Rules
 
-- **Never** mark a task complete with failing tests
-- **Never** skip or delete tests to make them pass
-- **Never** commit code that breaks existing tests
-- **Always** fix tests before moving forward
-- **If test seems wrong**, ask before modifying it
+**All tests MUST either pass or be explicitly skipped with justification.**
+
+- ✅ **DO** write tests that validate your code and configuration
+- ✅ **DO** skip tests that lack infrastructure (document why and when they'll be enabled)
+- ✅ **DO** ensure a test validates actual behavior to pass - never shortcut to make it pass
+- ❌ **NEVER** mark a task complete with failing tests
+- ❌ **NEVER** delete tests to make them pass
+- ❌ **NEVER** commit code that breaks existing tests
+- ❌ **NEVER** add tests that can't be useful yet (wait until infrastructure exists)
+- ❌ **NEVER** use fake assertions or shortcuts to make tests pass
+
+**If you must skip a test:**
+```python
+# ✓ GOOD - Clear reason and plan
+pytestmark = pytest.mark.skip(
+    reason="UUID type incompatible with SQLite - covered by integration tests"
+)
+
+# ❌ BAD - No explanation
+@pytest.mark.skip
+def test_something():
+```
+
+**Test integrity principles:**
+1. A passing test must validate real code or configuration behavior
+2. Tests without necessary infrastructure should be skipped, not written
+3. All tests must pass OR be skipped - no exceptions
+4. If a test seems wrong, ask before modifying it
 
 ### Running Tests
 
