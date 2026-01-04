@@ -10,125 +10,256 @@ Example:
 import pytest
 from httpx import AsyncClient
 from typing import AsyncGenerator, Dict
+from uuid import UUID, uuid4
+from unittest.mock import AsyncMock
 
 from app.main import app
-from app.dependencies import get_chat_service
-from app.services import ChatService
-
-
-class MockChatService(ChatService):
-    """Mock ChatService for testing."""
-
-    def __init__(self, response_chunks=None):
-        # Don't call super().__init__() - we don't need real client
-        self.response_chunks = response_chunks or ["Hello", " world"]
-        self.last_message = None
-        self.last_model = None
-        self.last_max_tokens = None
-
-    async def stream_chat_response(
-        self,
-        message: str,
-        model: str | None = None,
-        max_tokens: int | None = None
-    ) -> AsyncGenerator[Dict[str, str], None]:
-        """Mock streaming response."""
-        # Store params for verification
-        self.last_message = message
-        self.last_model = model
-        self.last_max_tokens = max_tokens
-
-        # Yield mock chunks
-        for chunk in self.response_chunks:
-            yield {"event": "message", "data": chunk}
-        yield {"event": "done", "data": ""}
+from app.dependencies import get_current_user, get_db
+from app.services.conversation_service import ConversationService
+from app.models.conversation import Conversation, Message as MessageModel
 
 
 @pytest.fixture
-def mock_chat_service():
-    """Factory fixture for creating mock chat service."""
-    def _create_mock(response_chunks=None):
-        return MockChatService(response_chunks)
-    return _create_mock
+def mock_user_id():
+    """Mock user ID for tests."""
+    return uuid4()
+
+
+@pytest.fixture
+def mock_conversation_id():
+    """Mock conversation ID for tests."""
+    return uuid4()
+
+
+@pytest.fixture
+def mock_db_session():
+    """Mock database session."""
+    return AsyncMock()
+
+
+@pytest.fixture
+def mock_conversation(mock_user_id, mock_conversation_id):
+    """Mock conversation with messages."""
+    conversation = Conversation(
+        id=mock_conversation_id,
+        user_id=mock_user_id,
+        title="Test Conversation",
+        current_mode="balanced"
+    )
+
+    # Add some messages
+    conversation.messages = [
+        MessageModel(
+            id=uuid4(),
+            conversation_id=mock_conversation_id,
+            role="user",
+            content="Hello",
+        )
+    ]
+    return conversation
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_chat_endpoint_valid_message_returns_200(
     client: AsyncClient,
-    sample_chat_message,
-    mock_chat_service
+    mock_user_id,
+    mock_conversation_id,
+    mock_db_session,
+    mock_conversation,
+    mocker
 ):
     """Test that chat endpoint returns 200 on valid message."""
-    mock_service = mock_chat_service()
-    app.dependency_overrides[get_chat_service] = lambda: mock_service
+    # Mock dependencies
+    app.dependency_overrides[get_current_user] = lambda: mock_user_id
+    app.dependency_overrides[get_db] = lambda: mock_db_session
 
-    response = await client.post("/api/chat", json=sample_chat_message)
+    # Mock ConversationService methods
+    mocker.patch.object(
+        ConversationService,
+        'get_conversation',
+        return_value=mock_conversation
+    )
+    mocker.patch.object(
+        ConversationService,
+        'add_message',
+        return_value=None
+    )
+
+    # Mock Anthropic client
+    mock_stream = mocker.MagicMock()
+    mock_stream.__enter__ = mocker.MagicMock(return_value=mock_stream)
+    mock_stream.__exit__ = mocker.MagicMock(return_value=None)
+    mock_stream.text_stream = iter(["Hello", " world"])
+
+    mocker.patch('anthropic.Anthropic')
+    mock_client = mocker.MagicMock()
+    mock_client.messages.stream.return_value = mock_stream
+    mocker.patch('anthropic.Anthropic', return_value=mock_client)
+
+    request_data = {
+        "conversation_id": str(mock_conversation_id),
+        "message": "Test message",
+        "mode": "balanced",
+        "model": "haiku"
+    }
+
+    response = await client.post("/api/chat", json=request_data)
     assert response.status_code == 200
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="SSE event loop conflicts - will fix in Phase 2")
-async def test_chat_endpoint_empty_message_returns_200(
+async def test_chat_endpoint_missing_conversation_id_returns_422(
     client: AsyncClient,
-    mock_chat_service
+    mock_user_id,
+    mock_db_session
 ):
-    """Test that chat endpoint handles empty message gracefully."""
-    mock_service = mock_chat_service([])
-    app.dependency_overrides[get_chat_service] = lambda: mock_service
+    """Test that chat endpoint returns 422 when conversation_id is missing."""
+    # Mock dependencies
+    app.dependency_overrides[get_current_user] = lambda: mock_user_id
+    app.dependency_overrides[get_db] = lambda: mock_db_session
 
-    response = await client.post("/api/chat", json={"message": ""})
-    assert response.status_code == 200
-    assert mock_service.last_message == ""
+    # Request without conversation_id
+    request_data = {
+        "message": "Test message",
+        "mode": "balanced",
+        "model": "haiku"
+    }
+
+    response = await client.post("/api/chat", json=request_data)
+    assert response.status_code == 422  # Validation error
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="SSE event loop conflicts - will fix in Phase 2")
-async def test_chat_endpoint_valid_message_passes_message_to_service(
+async def test_chat_endpoint_nonexistent_conversation_returns_404(
     client: AsyncClient,
-    sample_chat_message,
-    mock_chat_service
+    mock_user_id,
+    mock_conversation_id,
+    mock_db_session,
+    mocker
 ):
-    """Test that chat endpoint passes user message to chat service."""
-    mock_service = mock_chat_service()
-    app.dependency_overrides[get_chat_service] = lambda: mock_service
+    """Test that chat endpoint returns 404 for nonexistent conversation."""
+    # Mock dependencies
+    app.dependency_overrides[get_current_user] = lambda: mock_user_id
+    app.dependency_overrides[get_db] = lambda: mock_db_session
 
-    await client.post("/api/chat", json=sample_chat_message)
-    assert mock_service.last_message == sample_chat_message["message"]
+    # Mock ConversationService.get_conversation to return None
+    mocker.patch.object(
+        ConversationService,
+        'get_conversation',
+        return_value=None
+    )
+
+    request_data = {
+        "conversation_id": str(mock_conversation_id),
+        "message": "Test message",
+        "mode": "balanced",
+        "model": "haiku"
+    }
+
+    response = await client.post("/api/chat", json=request_data)
+    assert response.status_code == 404
 
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="SSE event loop conflicts - will fix in Phase 2")
-async def test_chat_endpoint_missing_message_field_uses_empty_string(
+async def test_chat_endpoint_returns_sse_content_type(
     client: AsyncClient,
-    mock_chat_service
+    mock_user_id,
+    mock_conversation_id,
+    mock_db_session,
+    mock_conversation,
+    mocker
 ):
-    """Test that chat endpoint handles missing message field with empty string."""
-    mock_service = mock_chat_service([])
-    app.dependency_overrides[get_chat_service] = lambda: mock_service
+    """Test that chat endpoint returns SSE content type."""
+    # Mock dependencies
+    app.dependency_overrides[get_current_user] = lambda: mock_user_id
+    app.dependency_overrides[get_db] = lambda: mock_db_session
 
-    response = await client.post("/api/chat", json={})
+    # Mock ConversationService methods
+    mocker.patch.object(
+        ConversationService,
+        'get_conversation',
+        return_value=mock_conversation
+    )
+    mocker.patch.object(
+        ConversationService,
+        'add_message',
+        return_value=None
+    )
+
+    # Mock Anthropic client
+    mock_stream = mocker.MagicMock()
+    mock_stream.__enter__ = mocker.MagicMock(return_value=mock_stream)
+    mock_stream.__exit__ = mocker.MagicMock(return_value=None)
+    mock_stream.text_stream = iter(["Hello"])
+
+    mock_client = mocker.MagicMock()
+    mock_client.messages.stream.return_value = mock_stream
+    mocker.patch('anthropic.Anthropic', return_value=mock_client)
+
+    request_data = {
+        "conversation_id": str(mock_conversation_id),
+        "message": "Test message",
+        "mode": "balanced",
+        "model": "haiku"
+    }
+
+    response = await client.post("/api/chat", json=request_data)
     assert response.status_code == 200
-    assert mock_service.last_message == ""
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-@pytest.mark.skip(reason="SSE event loop conflicts - will fix in Phase 2")
-async def test_chat_endpoint_streams_response_events(
-    client: AsyncClient,
-    sample_chat_message,
-    mock_chat_service
-):
-    """Test that chat endpoint streams SSE events correctly."""
-    mock_service = mock_chat_service(["Hello", " world"])
-    app.dependency_overrides[get_chat_service] = lambda: mock_service
-
-    response = await client.post("/api/chat", json=sample_chat_message)
-    assert response.status_code == 200
-
-    # Verify we got SSE content type
     assert "text/event-stream" in response.headers.get("content-type", "")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_chat_endpoint_uses_correct_model(
+    client: AsyncClient,
+    mock_user_id,
+    mock_conversation_id,
+    mock_db_session,
+    mock_conversation,
+    mocker
+):
+    """Test that chat endpoint uses the correct Claude model."""
+    # Mock dependencies
+    app.dependency_overrides[get_current_user] = lambda: mock_user_id
+    app.dependency_overrides[get_db] = lambda: mock_db_session
+
+    # Mock ConversationService methods
+    mocker.patch.object(
+        ConversationService,
+        'get_conversation',
+        return_value=mock_conversation
+    )
+    mocker.patch.object(
+        ConversationService,
+        'add_message',
+        return_value=None
+    )
+
+    # Mock Anthropic client
+    mock_stream = mocker.MagicMock()
+    mock_stream.__enter__ = mocker.MagicMock(return_value=mock_stream)
+    mock_stream.__exit__ = mocker.MagicMock(return_value=None)
+    mock_stream.text_stream = iter(["Response"])
+
+    mock_client = mocker.MagicMock()
+    mock_client.messages.stream.return_value = mock_stream
+    mocker.patch('anthropic.Anthropic', return_value=mock_client)
+
+    request_data = {
+        "conversation_id": str(mock_conversation_id),
+        "message": "Test message",
+        "mode": "balanced",
+        "model": "sonnet"  # Request sonnet model
+    }
+
+    response = await client.post("/api/chat", json=request_data)
+    assert response.status_code == 200
+
+    # Verify the correct model was used
+    mock_client.messages.stream.assert_called_once()
+    call_kwargs = mock_client.messages.stream.call_args[1]
+    assert call_kwargs["model"] == "claude-3-5-sonnet-20241022"

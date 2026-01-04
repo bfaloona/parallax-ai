@@ -33,20 +33,24 @@ def initialize_bcrypt():
     This fixture runs automatically at session start and ensures bcrypt is properly
     initialized before any tests run. This prevents bcrypt backend errors in async tests.
     """
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    import bcrypt
     # Trigger bcrypt initialization with a dummy hash
-    pwd_context.hash("initialization_test")
-    return pwd_context
+    # Use truncated password to avoid 72-byte limit error
+    test_password = b"initialization_test"[:72]
+    salt = bcrypt.gensalt()
+    bcrypt.hashpw(test_password, salt)
+    return None
 
 
 @pytest.fixture(scope="session")
 def event_loop():
-    """Create event loop for session-scoped async fixtures.
+    """Provide session-scoped event loop for async fixtures.
 
-    This is required for session-scoped async fixtures to work properly.
+    This is needed for session-scoped async fixtures like test_db_engine.
+    pytest-asyncio provides a function-scoped event_loop by default, but we need
+    session scope for database setup/teardown efficiency.
     """
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+    loop = asyncio.new_event_loop()
     yield loop
     loop.close()
 

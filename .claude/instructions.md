@@ -50,7 +50,7 @@ Ask yourself:
 
 ### After Completing Any Task
 
-**1. Run unit tests:**
+**1. Run unit and integration tests BEFORE assuming code change is complete:**
 ```bash
 # All tests (recommended before commit)
 inv test
@@ -62,17 +62,23 @@ inv test.unit
 inv test.integration
 ```
 
+**CRITICAL:** Always run tests before assuming a code change is complete or a phase is complete. This is non-negotiable.
+
 See **Testing Standards** section below for complete testing guidelines.
 
 **2. Mental checklist:**
 - [ ] Does it work? (tested, not just "looks right")
 - [ ] Do all unit tests pass?
+- [ ] Do all integration tests pass?
+- [ ] Are there any skipped tests that should be unskipped?
 - [ ] Does it match existing code style?
 - [ ] Did I change anything outside the immediate task scope?
 - [ ] If yes to above — did I verify those areas still work?
 - [ ] Would I be comfortable if Brandon reviewed this diff line-by-line?
 
 **3. If tests fail:** Fix them before reporting task complete. If you can't fix them, escalate with details.
+
+**4. Skipped tests:** Review all skipped tests. If infrastructure now exists to run them, unskip and fix them.
 
 ---
 

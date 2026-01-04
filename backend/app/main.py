@@ -4,10 +4,9 @@ from sse_starlette.sse import EventSourceResponse
 import os
 from dotenv import load_dotenv
 
-from app.dependencies import get_chat_service
-from app.services import ChatService
 from app.routers import auth
 from app.routers import conversations
+from app.routers import chat
 
 load_dotenv()
 
@@ -16,6 +15,7 @@ app = FastAPI(title="Parallax AI API")
 # Register routers
 app.include_router(auth.router)
 app.include_router(conversations.router)
+app.include_router(chat.router)
 
 # CORS
 app.add_middleware(
@@ -29,15 +29,6 @@ app.add_middleware(
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-@app.post("/api/chat")
-async def chat(
-    request: dict,
-    chat_service: ChatService = Depends(get_chat_service)
-):
-    """Minimal chat endpoint - no auth, no persistence yet"""
-    message = request.get("message", "")
-    return EventSourceResponse(chat_service.stream_chat_response(message))
 
 if __name__ == "__main__":
     import uvicorn

@@ -5,13 +5,9 @@ from datetime import datetime
 from sqlalchemy import Column, String, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from passlib.context import CryptContext
+import bcrypt
 
 from app.models.base import Base
-
-
-# Password hashing configuration
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class User(Base):
@@ -37,7 +33,10 @@ class User(Base):
         Args:
             password: Plain text password to hash
         """
-        self.password_hash = pwd_context.hash(password)
+        # Bcrypt has a 72-byte limit, truncate if necessary
+        password_bytes = password.encode('utf-8')[:72]
+        salt = bcrypt.gensalt()
+        self.password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
 
     def verify_password(self, password: str) -> bool:
         """Verify password against stored hash.
@@ -48,7 +47,10 @@ class User(Base):
         Returns:
             True if password matches, False otherwise
         """
-        return pwd_context.verify(password, self.password_hash)
+        # Bcrypt has a 72-byte limit, truncate if necessary (must match set_password)
+        password_bytes = password.encode('utf-8')[:72]
+        hash_bytes = self.password_hash.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hash_bytes)
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, tier={self.tier})>"
